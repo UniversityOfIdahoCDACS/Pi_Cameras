@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			#armCanvas{left:0; border:1px solid red;}
+			#aboveCanvas{left:0; border: 1px solid green;}
+			#frontCanvas{left:300px; border: 1px solid blue;};
+		</style>
+		<meta charset="utf-8" />
+        <script type="text/javascript" src="http://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+		<script type="text/javascript" src="http://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+	<script type="text/javascript" type="text/javascript">
+		var ros = new ROSLIB.Ros({
+			url : 'ws://129.101.98.243:9091'
+		});
+
+		ros.on('connection', function() {
+			document.getElementById("status").innerHTML = "Connected";
+            		console.log('Connected to websocket server.');
+		});
+		
+		ros.on('error', function(error) {
+			document.getElementById("status").innerHTML = "Error";
+            		console.log('Error connecting to websocket server: ', error);
+		});
+
+		ros.on('closed', function() {
+			document.getElementById("status").innerHTML = "Closed";
+            		console.log('Connection to websocket server closed.');
+		});
+
+
+		var armListener = new ROSLIB.Topic({
+			ros : ros,
+			name : '/arm_image_capture',
+			messageType : 'sensor_msgs/Image'
+		});
+
+		armListener.subscribe(function(m){
+            		console.log("Image received.");
+			document.getElementById("armStatus").innerHTML = "Processing Image";
+            		const can = document.getElementById("armCanvas");
+            		can.width = m.width;
+            		can.height = m.height;
+            		ctx = can.getContext("2d");
+
+            		imgData = ctx.createImageData(m.width, m.height);
+           		const data = imgData.data;
+            		const inData = atob(m.data);
+
+            		var j =0, i=4;
+            		while (j < inData.length){
+                		const w1 = inData.charCodeAt(j++);
+                		const w2 = inData.charCodeAt(j++);
+                		const w3 = inData.charCodeAt(j++);
+                		if (!m.is_bigendian){
+                    			data[i++]       = w1;
+                    			data[i++]       = w2;
+                   			data[i++]       = w3;
+                		}
+                		else {
+                   			data[i++]       = (w1 >> 8) + ((w1 & 0xFF) << 8);
+                    			data[i++]       = (w2 >> 8) + ((w2 & 0xFF) << 8);
+                    			data[i++]       = (w3 >> 8) + ((w3 & 0xFF) << 8);
+                		}
+                		data[i++] = 255;
+
+            		}
+			armImgData = imgData;
+            		can.width = "640";
+            		can.height="480";
+            		createImageBitmap(imgData).then(function(imgBitmap){
+                		ctx.drawImage(imgBitmap, 0, 0, can.width, can.height);
+            		});
+
+            		document.getElementById("armCanvas").onclick = function(e){
+				
+				var w = window.open("imageFull.html");
+				w.onload = function(){
+					const canFull = w.document.getElementById("CanvasFull");
+					ctxFull = canFull.getContext("2d");
+					canFull.width = m.width;
+            				canFull.height = m.height;
+					ctxFull.putImageData(armImgData, 0 ,0);
+				};
+            		};
+			document.getElementById("armStatus").innerHTML = "Image Processed";
+			document.getElementById("armButton").disabled=false;
+            		console.log("Done processing image.");
+		});
+
+		var aboveListener = new ROSLIB.Topic({
+			ros : ros,
+			name : '/above_image_capture',
+			messageType : 'sensor_msgs/Image'
+		});
+
+		aboveListener.subscribe(function(m){
+            		console.log("Image received.");
+			document.getElementById("aboveStatus").innerHTML = "Processing Image";
+            		const can = document.getElementById("aboveCanvas");
+            		can.width = m.width;
+            		can.height = m.height;
+            		ctx = can.getContext("2d");
+
+            		imgData = ctx.createImageData(m.width, m.height);
+           		const data = imgData.data;
+            		const inData = atob(m.data);
+
+            		var j =0, i=4;
+            		while (j < inData.length){
+                		const w1 = inData.charCodeAt(j++);
+                		const w2 = inData.charCodeAt(j++);
+                		const w3 = inData.charCodeAt(j++);
+                		if (!m.is_bigendian){
+                    			data[i++]         = w1;
+                    			data[i++]       = w2;
+                   			data[i++]       = w3;
+                		}
+                		else {
+                   			data[i++]       = (w1 >> 8) + ((w1 & 0xFF) << 8);
+                    			data[i++]       = (w2 >> 8) + ((w2 & 0xFF) << 8);
+                    			data[i++]       = (w3 >> 8) + ((w3 & 0xFF) << 8);
+                		}
+                		data[i++] = 255;
+
+            		}
+			aboveImgData = imgData;
+            		can.width = "640";
+            		can.height="480";
+            		createImageBitmap(imgData).then(function(imgBitmap){
+                		ctx.drawImage(imgBitmap, 0, 0, can.width, can.height);
+            		});
+
+            		document.getElementById("aboveCanvas").onclick = function(e){
+				var w = window.open("imageFull.html");
+				w.onload = function(){
+					const canFull = w.document.getElementById("CanvasFull");
+					ctxFull = canFull.getContext("2d");
+					canFull.width = m.width;
+            				canFull.height = m.height;
+					ctxFull.putImageData(aboveImgData, 0 ,0);
+				};
+            		};
+            		console.log("Done processing image.");
+			document.getElementById("aboveStatus").innerHTML = "Image Processed";
+			document.getElementById("aboveButton").disabled=false;
+		});
+
+		var frontListener = new ROSLIB.Topic({
+			ros : ros,
+			name : '/front_image_capture',
+			messageType : 'sensor_msgs/Image'
+		});
+
+		frontListener.subscribe(function(m){
+            		console.log("Image received.");
+			document.getElementById("frontStatus").innerHTML = "Processing Image";
+            		const can = document.getElementById("frontCanvas");
+            		can.width = m.width;
+            		can.height = m.height;
+            		ctx = can.getContext("2d");
+
+            		imgData = ctx.createImageData(m.width, m.height);
+           		const data = imgData.data;
+            		const inData = atob(m.data);
+
+            		var j =0, i=4;
+            		while (j < inData.length){
+                		const w1 = inData.charCodeAt(j++);
+                		const w2 = inData.charCodeAt(j++);
+                		const w3 = inData.charCodeAt(j++);
+                		if (!m.is_bigendian){
+                    			data[i++]         = w1;
+                    			data[i++]       = w2;
+                   			data[i++]       = w3;
+                		}
+                		else {
+                   			data[i++]       = (w1 >> 8) + ((w1 & 0xFF) << 8);
+                    			data[i++]       = (w2 >> 8) + ((w2 & 0xFF) << 8);
+                    			data[i++]       = (w3 >> 8) + ((w3 & 0xFF) << 8);
+                		}
+                		data[i++] = 255;
+
+            		}
+			frontImgData = imgData;
+            		can.width = "640";
+            		can.height="480";
+            		createImageBitmap(imgData).then(function(imgBitmap){
+                		ctx.drawImage(imgBitmap, 0, 0, can.width, can.height);
+            		});
+
+            		document.getElementById("frontCanvas").onclick = function(e){
+				var w = window.open("imageFull.html");
+				w.onload = function(){
+					const canFull = w.document.getElementById("CanvasFull");
+					ctxFull = canFull.getContext("2d");
+					canFull.width = m.width;
+            				canFull.height = m.height;
+					ctxFull.putImageData(frontImgData, 0 ,0);
+				};
+            		};
+            		console.log("Done processing image.");
+			document.getElementById("frontStatus").innerHTML = "Image Processed";
+			document.getElementById("frontButton").disabled=false;
+		});
+
+        	armPublisher = new ROSLIB.Topic({
+            		ros : ros,
+            		name : '/arm_image_command',
+            		messageType : 'std_msgs/String'
+        	});        
+
+        	function armImageCapture(){
+            		var msg = new ROSLIB.Message({
+               			data : 'jpg'
+            		});
+            		console.log("Sending message " + msg);
+            		armPublisher.publish(msg);
+			document.getElementById("armButton").disabled=true;
+			document.getElementById("armStatus").innerHTML = "Message sent to camera.";
+        	};
+
+        	var armImageStatus = new ROSLIB.Topic({
+            		ros : ros,
+            		name : '/arm_image_status',
+            		messageType : 'std_msgs/String'
+        	}); 
+
+		armImageStatus.subscribe(function(message){
+			console.log("Received message on " + armImageStatus.name + ": " + message.data)
+			document.getElementById("armStatus").innerHTML = message.data;
+		});
+
+		abovePublisher = new ROSLIB.Topic({
+            		ros : ros,
+            		name : '/above_image_command',
+            		messageType : 'std_msgs/String'
+        	});   
+		     
+
+        	function aboveImageCapture(){
+            		var msg = new ROSLIB.Message({
+               			data : 'jpg'
+            		});
+            		console.log("Sending message " + msg);
+            		abovePublisher.publish(msg);
+			document.getElementById("aboveButton").disabled=true;
+			document.getElementById("aboveStatus").innerHTML = "Message sent to camera.";
+        	};
+
+		var aboveImageStatus = new ROSLIB.Topic({
+            		ros : ros,
+            		name : '/above_image_status',
+            		messageType : 'std_msgs/String'
+        	}); 
+
+		aboveImageStatus.subscribe(function(message){
+			console.log("Received message on " + aboveImageStatus.name + ": " + message.data)
+			document.getElementById("aboveStatus").innerHTML = message.data;
+		});
+
+		frontPublisher = new ROSLIB.Topic({
+            		ros : ros,
+            		name : '/front_image_command',
+            		messageType : 'std_msgs/String'
+        	});        
+
+        	function frontImageCapture(){
+            		var msg = new ROSLIB.Message({
+               			data : 'jpg'
+            		});
+            		console.log("Sending message " + msg);
+            		frontPublisher.publish(msg);
+			document.getElementById("frontButton").disabled=true;
+			document.getElementById("frontStatus").innerHTML = "Message sent to camera.";
+        	};
+
+		var frontImageStatus = new ROSLIB.Topic({
+            		ros : ros,
+            		name : '/front_image_status',
+            		messageType : 'std_msgs/String'
+        	}); 
+
+		frontImageStatus.subscribe(function(message){
+			console.log("Received message on " + frontImageStatus.name + ": " + message.data)
+			document.getElementById("frontStatus").innerHTML = message.data;
+		});
+
+                var handPublisher = new ROSLIB.Topic({
+                        ros : ros,
+                        name : '/robot_hand_command',
+                        messageType : 'std_msgs/String'
+                });
+		function openHand(){
+                        var msg = new ROSLIB.Message({
+                                data : '150 150 150 150 150'
+                        });
+                        console.log("Sending message " + msg);
+                        handPublisher.publish(msg);
+                };
+		function closeHand(){
+                        var msg = new ROSLIB.Message({
+                                data : '440 440 440 440 440'
+                        });
+                        console.log("Sending message " + msg);
+                        handPublisher.publish(msg);
+                };
+                function thumbsUpHand(){
+                        var msg = new ROSLIB.Message({
+                                data : '150 440 440 440 440'
+                        });
+                        console.log("Sending message " + msg);
+                        handPublisher.publish(msg);
+                };
+
+		</script>
+	</head>
+
+	<body>
+		<h1>VandalRobot Image Capturer</h1>
+        	<button id="armButton" onclick="armImageCapture()">Capture image from arm camera.</button>
+		<button id="aboveButton" onclick="aboveImageCapture()">Capture image from above camera.</button>
+		
+		<button id="frontButton" onclick="frontImageCapture()">Capture image from front camera.</button>
+		<button id="handOpenButton" onclick="openHand()">Open the Robot Hand</button>
+		<button id="handCloseButton" onclick="closeHand()">Close the Robot Hand</button>
+                <button id="handThumbsUpButton" onclick="thumbsUpHand()">Thumbs Up</button>
+
+
+		<p>HTTP Server Connection status: <span id="status"></span></p>
+		<p> Arm Image Capture status: <span id="armStatus"></span></p>
+        	<p> Above Image Capture status: <span id="aboveStatus"></span></p>
+		<p> Front Image Capture status: <span id="frontStatus"></span></p>
+        	<canvas id="armCanvas" style="width:32%" ></canvas>
+        	<canvas id="aboveCanvas" style="width:32%" ></canvas>
+       	 	<canvas id="frontCanvas" style="width:32%" ></canvas>
+		
+	</body>
+</html>
+
